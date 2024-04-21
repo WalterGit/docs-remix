@@ -1,0 +1,2 @@
+isRouteErrorResponse
+This util is simply a re-export of React Router's isRouteErrorResponse.

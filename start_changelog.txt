@@ -1,0 +1,460 @@
+Remix Releases
+This page lists all releases/release notes for Remix back to v2.0.0. For releases prior to v2, please refer to the Github Releases Page.
+We manage release notes in this file instead of the paginated Github Releases Page for 2 reasons:
+v2.8.1
+Date: 2024-03-07
+Patch Changes
+Updated Dependencies
+Changes by Package
+Full Changelog: v2.8.0...v2.8.1
+v2.8.0
+Date: 2024-02-28
+Minor Changes
+Patch Changes
+Updated Dependencies
+Changes by Package
+Full Changelog: v2.7.2...v2.8.0
+2.7.2
+Date: 2024-02-21
+Patch Changes
+2.7.1
+Date: 2024-02-20
+Patch Changes
+v2.7.0
+Date: 2024-02-20
+What's Changed
+Stabilized Vite Plugin
+We're excited to announce that support for Vite is now stable in Remix 2.7.0! Ever since the initial unstable release of Remix Vite, we’ve been hard at work refining and extending it over the past few months with help from all of our early adopters and community contributors. This also means that Vite-only features such as SPA Mode, Server Bundles, and basename support are now officially stable as well 😊.
+For more information, check out the blog post and the Vite docs.
+New Layout Export
+We've found that it's super common to create your own component in your root route to hold the shared layout/app shell between your Component/ErrorBoundary/HydrateFallback. This is so common (and can also cause some minor edge-case issues such as a FOUC on hydration) that we've incorporated this as a first-class API in 2.7.0.
+You can now export an optional Layout component from your root route which will be provided your route component, ErrorBoundary, or HydrateFallback as it's children. For more information, please see the Layout docs and the RFC.
+Basename support
+React Router has long supported a basename config that allows you to serve your app within a subpath such as http://localhost/myapp/* without having to include the /myapp segment in all of your route paths. This was originally omitted from Remix because v1 nested folders file-convention made it pretty easy to put your route files in a routes/myapp/ folder, giving you the same functionality. There has also been an open proposal from the community to add this functionality.
+Two things have since changed that made us reconsider the lack of basename support:
+In 2.7.0 we've added support for a basename in the Vite plugin config. For more information, please check out the basename docs.
+Note: This is a Vite-only feature and is not available via the esbuild compiler.
+Cloudflare Proxy as a Vite Plugin
+⚠️ This is a breaking change for projects relying on Cloudflare support from the unstable Vite plugin
+The Cloudflare preset (unstable_cloudflarePreset) as been removed and replaced with a new Vite plugin:
+ import {
+    unstable_vitePlugin as remix,
+-   unstable_cloudflarePreset as cloudflare,
++   cloudflareDevProxyVitePlugin as remixCloudflareDevProxy,
+  } from "@remix-run/dev";
+  import { defineConfig } from "vite";
+
+  export default defineConfig({
+    plugins: [
++     remixCloudflareDevProxy(),
++     remix(),
+-     remix({
+-       presets: [cloudflare()],
+-     }),
+    ],
+-   ssr: {
+-     resolve: {
+-       externalConditions: ["workerd", "worker"],
+-     },
+-   },
+  });
+
+A few notes on the new plugin:
+Minor Changes
+Patch Changes
+Updated Dependencies
+Changes by Package
+Full Changelog: v2.6.0...v2.7.0
+v2.6.0
+Date: 2024-02-01
+What's Changed
+Unstable Vite Plugin updates
+As we continue moving towards stabilizing the Vite plugin, we've introduced a few breaking changes to the unstable Vite plugin in this release. Please read the @remix-run/dev changes below closely and update your app accordingly if you've opted into using the Vite plugin.
+We've also removed the unstable_ prefix from the serverBundles option as we're now confident in the API (#8596).
+🎉 And last, but certainly not least - we've added much anticipated Cloudflare support in #8531! To get started with Cloudflare, you can use the unstable-vite-cloudflare template:
+npx create-remix@latest --template remix-run/remix/templates/unstable-vite-cloudflare
+
+For more information, please refer to the docs at Future > Vite > Cloudflare and Future > Vite > Migrating > Migrating Cloudflare Functions.
+Minor Changes
+Patch Changes
+@remix-run/server-runtime - Unwrap thrown Response's from entry.server into ErrorResponse's and preserve the status code (#8577)
+@remix-run/dev - Vite: Add manifest option to Vite plugin to enable writing a .remix/manifest.json file to the build directory (#8575)
+@remix-run/dev - Vite: Rely on Vite plugin ordering (#8627)
+⚠️ This is a breaking change for projects using the unstable Vite plugin
+The Remix plugin expects to process JavaScript or TypeScript files, so any transpilation from other languages must be done first.
+For example, that means putting the MDX plugin before the Remix plugin:
+  import mdx from "@mdx-js/rollup";
+  import { unstable_vitePlugin as remix } from "@remix-run/dev";
+  import { defineConfig } from "vite";
+
+  export default defineConfig({
+    plugins: [
++     mdx(),
+      remix()
+-     mdx(),
+    ],
+  });
+
+Previously, the Remix plugin misused enforce: "post" from Vite's plugin API to ensure that it ran last
+However, this caused other unforeseen issues
+Instead, we now rely on standard Vite semantics for plugin ordering
+The official Vite React SWC plugin also relies on plugin ordering for MDX
+@remix-run/dev - Vite: Remove interop with <LiveReload />, rely on <Scripts /> instead (#8636)
+⚠️ This is a breaking change for projects using the unstable Vite plugin
+Vite provides a robust client-side runtime for development features like HMR, making the <LiveReload /> component obsolete
+In fact, having a separate dev scripts component was causing issues with script execution order
+To work around this, the Remix Vite plugin used to override <LiveReload /> into a bespoke implementation that was compatible with Vite
+Instead of all this indirection, now the Remix Vite plugin instructs the <Scripts /> component to automatically include Vite's client-side runtime and other dev-only scripts
+To adopt this change, you can remove the LiveReload component from your root.tsx component:
+  import {
+-   LiveReload,
+    Outlet,
+    Scripts,
+  }
+
+  export default function App() {
+    return (
+      <html>
+        <head>
+        </head>
+        <body>
+          <Outlet />
+          <Scripts />
+-         <LiveReload />
+        </body>
+      </html>
+    )
+  }
+
+@remix-run/dev - Vite: Only write Vite manifest files if build.manifest is enabled within the Vite config (#8599)
+⚠️ This is a breaking change for consumers of Vite's manifest.json files
+To explicitly enable generation of Vite manifest files, you must set build.manifest to true in your Vite config:
+export default defineConfig({
+  build: { manifest: true },
+  // ...
+});
+
+@remix-run/dev - Vite: Add new buildDirectory option with a default value of "build" (#8575)
+⚠️ This is a breaking change for consumers of the Vite plugin that were using the assetsBuildDirectory and serverBuildDirectory options
+This replaces the old assetsBuildDirectory and serverBuildDirectory options which defaulted to "build/client" and "build/server" respectively
+The Remix Vite plugin now builds into a single directory containing client and server directories
+If you've customized your build output directories, you'll need to migrate to the new buildDirectory option, e.g.:
+import { unstable_vitePlugin as remix } from "@remix-run/dev";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [
+    remix({
+-      serverBuildDirectory: "dist/server",
+-      assetsBuildDirectory: "dist/client",
++      buildDirectory: "dist",
+    })
+  ],
+});
+
+@remix-run/dev - Vite: Write Vite manifest files to build/.vite directory rather than being nested within build/client and build/server directories (#8599)
+@remix-run/dev - Vite: Remove unstable prefix from serverBundles option (#8596)
+@remix-run/dev - Vite: Add --sourcemapClient and --sourcemapServer flags to remix vite:build (#8613)
+@remix-run/dev - Vite: Validate IDs returned from the serverBundles function to ensure they only contain alphanumeric characters, hyphens and underscores (#8598)
+@remix-run/dev - Vite: Fix "could not fast refresh" false alarm (#8580)
+@remix-run/dev - Vite: Cloudflare Pages support (#8531)
+@remix-run/dev - Vite: Add getRemixDevLoadContext option to Cloudflare preset (#8649)
+@remix-run/dev - Vite: Remove undocumented backwards compatibility layer for Vite v4 (#8581)
+@remix-run/dev - Vite: Add presets option to ease integration with different platforms and tools (#8514)
+@remix-run/dev - Vite: Add buildEnd hook (#8620)
+@remix-run/dev - Vite: Add mode field into generated server build (#8539)
+@remix-run/dev - Vite: Reduce network calls for route modules during HMR (#8591)
+@remix-run/dev - Vite: Export Unstable_ServerBundlesFunction and Unstable_VitePluginConfig types (#8654)
+Updated Dependencies
+Changes by Package
+Full Changelog: v2.5.1...v2.6.0
+v2.5.1
+Date: 2024-01-18
+Patch Changes
+Updated Dependencies
+Changes by Package
+Full Changelog: v2.5.0...v2.5.1
+v2.5.0
+Date: 2024-01-11
+What's Changed
+SPA Mode (unstable)
+SPA Mode (RFC) allows you to generate your Remix app as a standalone SPA served from a static index.html file. You can opt into SPA Mode by setting unstable_ssr: false in your Remix Vite plugin config:
+// vite.config.ts
+import { unstable_vitePlugin as remix } from "@remix-run/dev";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [remix({ unstable_ssr: false })],
+});
+
+Development in SPA Mode is just like a normal Remix app, and still uses the Remix dev server for HMR/HDR:
+remix vite:dev
+
+Building in SPA Mode will generate an index.html file in your client assets directory:
+remix vite:build
+
+To run your SPA, you serve your client assets directory via an HTTP server:
+npx http-server build/client
+
+For more information, please refer to the SPA Mode docs.
+Server Bundles (unstable)
+This is an advanced feature designed for hosting provider integrations where you may want to split server code into multiple request handlers. When compiling your app into multiple server bundles, there will need to be a custom routing layer in front of your app directing requests to the correct bundle. This feature is currently unstable and only designed to gather early feedback.
+You can control the server bundles generated by your Remix Vite build by setting the unstable_serverBundles option in your vite config:
+import { unstable_vitePlugin as remix } from "@remix-run/dev";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [
+    remix({
+      unstable_serverBundles: ({ branch }) => {
+        const isAuthenticatedRoute = branch.some(
+          (route) => route.id === "routes/_authenticated"
+        );
+
+        return isAuthenticatedRoute ? "authenticated" : "unauthenticated";
+      },
+    }),
+  ],
+});
+
+Minor Changes
+Patch Changes
+Updated Dependencies
+Changes by Package
+Full Changelog: v2.4.1...v2.5.0
+v2.4.1
+Date: 2023-12-22
+Patch Changes
+@remix-run/dev: Vite - Remove unstable_viteServerBuildModuleId in favor of manually referencing virtual module name "virtual:remix/server-build" (#8264)
+⚠️ This is a breaking change for projects using the unstable Vite plugin with a custom server
+This change was made to avoid issues where @remix-run/dev could be inadvertently required in your server's production dependencies.
+Instead, you should manually write the virtual module name "virtual:remix/server-build" when calling ssrLoadModule in development.
+-import { unstable_viteServerBuildModuleId } from "@remix-run/dev";
+
+// ...
+
+app.all(
+  "*",
+  createRequestHandler({
+    build: vite
+-      ? () => vite.ssrLoadModule(unstable_viteServerBuildModuleId)
++      ? () => vite.ssrLoadModule("virtual:remix/server-build")
+      : await import("./build/server/index.js"),
+  })
+);
+
+@remix-run/dev: Vite - Add vite:dev and vite:build commands to the Remix CLI (#8211)
+In order to handle upcoming Remix features where your plugin options can impact the number of Vite builds required, you should now run your Vite dev and build processes via the Remix CLI.
+{
+  "scripts": {
+-    "dev": "vite dev",
+-    "build": "vite build && vite build --ssr"
++    "dev": "remix vite:dev",
++    "build": "remix vite:build"
+  }
+}
+
+@remix-run/dev: Vite - Error messages when .server files are referenced by client (#8267)
+@remix-run/dev: Vite - Preserve names for exports from .client modules (#8200)
+@remix-run/dev: Vite - Disable watch mode in Vite child compiler during build (#8342)
+@remix-run/dev: Vite - Show warning when source maps are enabled in production build (#8222)
+@remix-run/react: Propagate server loader errors through serverLoader in hydrating clientLoader's (#8304)
+@remix-run/react Re-export Response helpers (defer/json/redirect/redirectDocument) through @remix-run/react for use in clientLoader/clientAction (#8351)
+@remix-run/server-runtime: Add optional error to ServerRuntimeMetaArgs type to align with MetaArgs (#8238)
+create-remix: Switch to using @remix-run/web-fetch instead of node-fetch inside the create-remix CLI (#7345)
+remix-serve: Use node fileURLToPath to convert source map URL to path (#8321)
+Updated Dependencies
+Changes by Package
+Full Changelog: v2.4.0...v2.4.1
+v2.4.0
+Date: 2023-12-13
+What's Changed
+Client Data
+We're excited to land the Client Data RFC in this release! The final API differs slightly from the RFC, so please check out the docs for use-cases and final APIs:
+While we still recommend server loaders/actions for the majority of your data needs in a Remix app - these provide some levers you can pull for more advanced use-cases such as:
+future.v3_relativeSplatPath
+We introduced a future.v3_relativeSplatPath flag to implement a breaking bug fix to relative routing when inside a splat route. For more information, please see the React Router 6.21.0 Release Notes and the useResolvedPath docs
+Vite Updates (Unstable)
+Remix now excludes modules within .server directories from client build.
+Remix now enforces strict route exports, and will will throw an error if you have unsupported exports in your route modules. Previously, the Remix compiler would allow any export from routes. While this was convenient, it was also a common source of bugs that were hard to track down because they only surfaced at runtime. For more information, please see the docs.
+Minor Changes
+Patch Changes
+@remix-run/server-runtime: Fix flash of unstyled content for non-Express custom servers in Vite dev (#8076)
+@remix-run/server-runtime: Pass request handler errors to vite.ssrFixStacktrace in Vite dev to ensure stack traces correctly map to the original source code (#8066)
+remix-serve: Fix source map loading when file has ?t=timestamp suffix (rebuilds) (#8174)
+@remix-run/dev: Change Vite build output paths to fix a conflict between how Vite and the Remix compiler each manage the public directory (#8077)
+@remix-run/dev: Upgrade Vite peer dependency range to v5 (#8172)
+@remix-run/dev: Support HMR for routes with handle export in Vite dev (#8022)
+@remix-run/dev: Fix flash of unstyled content for non-Express custom servers in Vite dev (#8076)
+@remix-run/dev: Bundle CSS imported in client entry file in Vite plugin (#8143)
+@remix-run/dev: Remove undocumented legacyCssImports option from Vite plugin due to issues with ?url imports of CSS files not being processed correctly in Vite (#8096)
+@remix-run/dev: Vite: fix access to default entry.{client,server}.tsx within pnpm workspaces on Windows (#8057)
+@remix-run/dev: Remove unstable_createViteServer and unstable_loadViteServerBuild which were only minimal wrappers around Vite's createServer and ssrLoadModule functions when using a custom server (#8120)
+⚠️ This is a breaking change for projects using the unstable Vite plugin with a custom server
+Instead, we now provide unstable_viteServerBuildModuleId so that custom servers interact with Vite directly rather than via Remix APIs, for example:
+-import {
+-  unstable_createViteServer,
+-  unstable_loadViteServerBuild,
+-} from "@remix-run/dev";
++import { unstable_viteServerBuildModuleId } from "@remix-run/dev";
+
+Creating the Vite server in middleware mode:
+const vite =
+  process.env.NODE_ENV === "production"
+    ? undefined
+-    : await unstable_createViteServer();
++    : await import("vite").then(({ createServer }) =>
++        createServer({
++          server: {
++            middlewareMode: true,
++          },
++        })
++      );
+
+Loading the Vite server build in the request handler:
+app.all(
+  "*",
+  createRequestHandler({
+    build: vite
+-      ? () => unstable_loadViteServerBuild(vite)
++      ? () => vite.ssrLoadModule(unstable_viteServerBuildModuleId)
+      : await import("./build/server/index.js"),
+  })
+);
+
+@remix-run/dev: Pass request handler errors to vite.ssrFixStacktrace in Vite dev to ensure stack traces correctly map to the original source code (#8066)
+@remix-run/dev: Vite: Preserve names for exports from .client imports (#8200)
+@remix-run/dev: Add @remix-run/node to Vite's optimizeDeps.include array (#8177)
+@remix-run/dev: Improve Vite plugin performance (#8121)
+@remix-run/dev: Remove automatic global Node polyfill installation from the built-in Vite dev server and instead allow explicit opt-in (#8119)
+⚠️ This is a breaking change for projects using the unstable Vite plugin without a custom server
+If you're not using a custom server, you should call installGlobals in your Vite config instead.
+import { unstable_vitePlugin as remix } from "@remix-run/dev";
++import { installGlobals } from "@remix-run/node";
+import { defineConfig } from "vite";
+
++installGlobals();
+
+export default defineConfig({
+  plugins: [remix()],
+});
+
+@remix-run/dev: Vite: Errors at build-time when client imports .server default export (#8184)
+@remix-run/dev: Fix request instanceof Request checks when using Vite dev server (#8062)
+Updated Dependencies
+Changes by Package
+Full Changelog: v2.3.1...v2.4.0
+v2.3.1
+Date: 2023-11-22
+Patch Changes
+Updated Dependencies
+Changes by Package
+Full Changelog: v2.3.0...v2.3.1
+v2.3.0
+Date: 2023-11-16
+What's Changed
+Stabilized useBlocker
+We've removed the unstable_ prefix from the useBlocker hook as it's been in use for enough time that we are confident in the API. We do not plan to remove the prefix from unstable_usePrompt due to differences in how browsers handle window.confirm that prevent React Router from guaranteeing consistent/correct behavior.
+unstable_flushSync API
+We've added a new unstable_flushSync option to the imperative APIs (useSubmit, useNavigate, fetcher.submit, fetcher.load) to let users opt-into synchronous DOM updates for pending/optimistic UI.
+function handleClick() {
+  submit(data, { flushSync: true });
+  // Everything is flushed to the DOM so you can focus/scroll to your pending/optimistic UI
+  setFocusAndOrScrollToNewlyAddedThing();
+}
+
+Minor Changes
+Patch Changes
+Updated Dependencies
+Changes by Package
+Full Changelog: v2.2.0...v2.3.0
+v2.2.0
+Date: 2023-10-31
+What's Changed
+Vite!
+Remix 2.2.0 adds unstable support for Vite for Node-based apps! See our announcement blog post and the Future > Vite page in the Remix docs for more details.
+You can try it out today with two new (unstable) templates:
+# minimal server
+npx create-remix@latest --template remix-run/remix/templates/unstable-vite
+
+# custom server (Express example)
+npx create-remix@latest --template remix-run/remix/templates/unstable-vite-express
+
+New Fetcher APIs
+Per this RFC, we've introduced some new APIs that give you more granular control over your fetcher behaviors:
+Persistence Future Flag
+Per the same RFC as above, we've introduced a new future.v3_fetcherPersist flag that allows you to opt-into the new fetcher persistence/cleanup behavior. Instead of being immediately cleaned up on unmount, fetchers will persist until they return to an idle state. This makes pending/optimistic UI much easier in scenarios where the originating fetcher needs to unmount.
+Minor Changes
+Patch Changes
+Updated Dependencies
+Changes by Package
+Full Changelog: v2.1.0...v2.2.0
+v2.1.0
+Date: 2023-10-16
+What's Changed
+View Transitions
+We're excited to release experimental support for the the View Transitions API in Remix! You can now trigger navigational DOM updates to be wrapped in document.startViewTransition to enable CSS animated transitions on SPA navigations in your application.
+The simplest approach to enabling a View Transition in your Remix app is via the new <Link unstable_viewTransition> prop. This will cause the navigation DOM update to be wrapped in document.startViewTransition which will enable transitions for the DOM update. Without any additional CSS styles, you'll get a basic cross-fade animation for your page.
+If you need to apply more fine-grained styles for your animations, you can leverage the unstable_useViewTransitionState hook which will tell you when a transition is in progress and you can use that to apply classes or styles:
+function ImageLink(to, src, alt) {
+  const isTransitioning = unstable_useViewTransitionState(to);
+  return (
+    <Link to={to} unstable_viewTransition>
+      <img
+        src={src}
+        alt={alt}
+        style={{
+          viewTransitionName: isTransitioning ? "image-expand" : "",
+        }}
+      />
+    </Link>
+  );
+}
+
+You can also use the <NavLink unstable_viewTransition> shorthand which will manage the hook usage for you and automatically add a transitioning class to the <a> during the transition:
+a.transitioning img {
+  view-transition-name: "image-expand";
+}
+
+<NavLink to={to} unstable_viewTransition>
+  <img src={src} alt={alt} />
+</NavLink>
+
+For an example usage of View Transitions, check out our fork of the Astro Records demo (which uses React Router but so does Remix 😉).
+For more information on using the View Transitions API, please refer to the Smooth and simple transitions with the View Transitions API guide from the Google Chrome team.
+Stable createRemixStub
+After real-world experience, we're confident in the createRemixStub API and ready to commit to it, so in 2.1.0 we've removed the unstable_ prefix.
+⚠️ Please note that this did involve 1 small breaking change - the <RemixStub remixConfigFuture> prop has been renamed to <RemixStub future> to decouple the future prop from a specific file location.
+Minor Changes
+Patch Changes
+Updated Dependencies
+Changes by Package
+Full Changelog: v2.0.1...v2.1.0
+v2.0.1
+Date: 2023-09-21
+Patch Changes
+Changes by Package 🔗
+Full Changelog: v2.0.0...v2.0.1
+v2.0.0
+Date: 2023-09-15
+We're so excited to release Remix v2 to you and we really hope this upgrade is one of the smoothest framework upgrades you've ever experienced! That was our primary goal with v2 - something we aimed to achieve through a heavy use of deprecation warnings and Future Flags in Remix v1.
+If you are on the latest 1.x version and you've enabled all future flags and addressed all console warnings, then our hope is that you are 90% of the way to being upgraded for v2. There are always going to be a few things that we can't put behind a flag (like breaking type changes) or come up at the very last moment and don't have time to add as a warning or flag in 1.x.
+If you're not yet on the latest 1.x version we'd recommend first upgrading to that and resolving any flag/console warnings:
+> npx upgrade-remix 1.19.3
+
+Breaking Changes
+Below is a very concise list of the breaking changes in v2.
+Upgraded Dependency Requirements
+Remix v2 has upgraded it's minimum version support for React and Node and now officially requires:
+Removed Future Flags
+The following future flags were removed and their behavior is now the default - you can remove all of these from your remix.config.js file.
+Breaking Changes/API Removals
+With deprecation warnings
+The following lists other breaking changes/API removals which had deprecation warnings in Remix v1. If you're on the latest 1.19.3 release without any console warnings, then you're probably good to go on all of these!
+Without deprecation warnings
+Unfortunately, we didn't manage to get a deprecation warning on every breaking change or API removal 🙃. Here's a list of remaining changes that you may need to look into to upgrade to v2:
+Breaking Type Changes
+New Features
+Other Notable Changes
+Updated Dependencies
+Changes by Package

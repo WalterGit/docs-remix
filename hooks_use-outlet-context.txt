@@ -1,0 +1,10 @@
+useOutletContext
+Convenience API over React Context that returns the context value from the closest parent <Outlet context={val} /> component.
+import { useOutletContext } from "@remix-run/react";
+
+function Child() {
+  const myValue = useOutletContext();
+  // ...
+}
+
+Additional Resources

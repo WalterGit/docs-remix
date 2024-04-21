@@ -1,0 +1,15 @@
+.client modules
+While uncommon, you may have a file or dependency that uses module side effects in the browser. You can use *.client.ts on file names or nest files within .client directories to force them out of server bundles.
+// this would break the server
+export const supportsVibrationAPI =
+  "vibrate" in window.navigator;
+
+Note that values exported from this module will all be undefined on the server, so the only places to use them are in useEffect and user events like click handlers.
+import { supportsVibrationAPI } from "./feature-check.client.ts";
+
+console.log(supportsVibrationAPI);
+// server: undefined
+// client: true | false
+
+.client directories are only supported when using Remix Vite. The Classic Remix Compiler only supports .client files.
+Refer to the Route Module section in the sidebar for more information.

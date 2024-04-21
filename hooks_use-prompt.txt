@@ -1,0 +1,28 @@
+unstable_usePrompt
+The unstable_usePrompt hook allows you to prompt the user for confirmation via window.confirm prior to navigating away from the current location.
+function ImportantForm() {
+  const [value, setValue] = React.useState("");
+
+  // Block navigating elsewhere when data has been entered into the input
+  unstable_usePrompt({
+    message: "Are you sure?",
+    when: ({ currentLocation, nextLocation }) =>
+      value !== "" &&
+      currentLocation.pathname !== nextLocation.pathname,
+  });
+
+  return (
+    <Form method="post">
+      <label>
+        Enter some important data:
+        <input
+          name="data"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+        />
+      </label>
+      <button type="submit">Save</button>
+    </Form>
+  );
+}
+

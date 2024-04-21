@@ -1,0 +1,19 @@
+useAsyncError
+Returns the rejection value from the closest <Await> component.
+import { Await, useAsyncError } from "@remix-run/react";
+
+function ErrorElement() {
+  const error = useAsyncError();
+  return (
+    <p>Uh Oh, something went wrong! {error.message}</p>
+  );
+}
+
+<Await
+  resolve={promiseThatRejects}
+  errorElement={<ErrorElement />}
+/>;
+
+Additional Resources
+Guides
+API

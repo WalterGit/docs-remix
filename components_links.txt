@@ -1,0 +1,15 @@
+<Links />
+The <Links/> component renders all of the <link> tags created by your route module links export. You should render it inside the <head> of your HTML, usually in app/root.tsx.
+import { Links } from "@remix-run/react";
+
+export default function Root() {
+  return (
+    <html>
+      <head>
+        <Links />
+      </head>
+      <body></body>
+    </html>
+  );
+}
+

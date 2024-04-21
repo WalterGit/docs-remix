@@ -1,0 +1,25 @@
+CSS Modules
+This documentation is only relevant when using the Classic Remix Compiler. If you're using Remix Vite, support for CSS Modules is built into Vite.
+To use the built-in CSS Modules support, first ensure you've set up CSS bundling in your application.
+You can then opt into CSS Modules via the .module.css file name convention. For example:
+.root {
+  border: solid 1px;
+  background: white;
+  color: #454545;
+}
+
+import styles from "./styles.module.css";
+
+export const Button = React.forwardRef(
+  ({ children, ...props }, ref) => {
+    return (
+      <button
+        {...props}
+        ref={ref}
+        className={styles.root}
+      />
+    );
+  }
+);
+Button.displayName = "Button";
+

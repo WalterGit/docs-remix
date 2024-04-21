@@ -1,0 +1,10 @@
+useRouteError
+Accesses the error thrown during an action, loader, or rendering to be used in an ErrorBoundary.
+export function ErrorBoundary() {
+  const error = useRouteError();
+  return <div>{error.message}</div>;
+}
+
+Additional Resources
+Guides
+API Reference

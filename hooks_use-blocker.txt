@@ -1,0 +1,50 @@
+useBlocker
+The useBlocker hook allows you to prevent the user from navigating away from the current location, and present them with a custom UI to allow them to confirm the navigation.
+function ImportantForm() {
+  const [value, setValue] = React.useState("");
+
+  // Block navigating elsewhere when data has been entered into the input
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      value !== "" &&
+      currentLocation.pathname !== nextLocation.pathname
+  );
+
+  return (
+    <Form method="post">
+      <label>
+        Enter some important data:
+        <input
+          name="data"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+        />
+      </label>
+      <button type="submit">Save</button>
+
+      {blocker.state === "blocked" ? (
+        <div>
+          <p>Are you sure you want to leave?</p>
+          <button onClick={() => blocker.proceed()}>
+            Proceed
+          </button>
+          <button onClick={() => blocker.reset()}>
+            Cancel
+          </button>
+        </div>
+      ) : null}
+    </Form>
+  );
+}
+
+For a more complete example, please refer to the example in the repository.
+Properties
+state
+The current state of the blocker
+location
+When in a blocked state, this represents the location to which we blocked a navigation. When in a proceeding state, this is the location being navigated to after a blocker.proceed() call.
+Methods
+proceed()
+When in a blocked state, you may call blocker.proceed() to proceed to the blocked location.
+reset()
+When in a blocked state, you may call blocker.reset() to return the blocker back to an unblocked state and leave the user at the current location.

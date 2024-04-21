@@ -1,0 +1,56 @@
+useSubmit
+The imperative version of <Form> that lets you, the programmer, submit a form instead of the user.
+import { useSubmit } from "@remix-run/react";
+
+function SomeComponent() {
+  const submit = useSubmit();
+  return (
+    <Form
+      onChange={(event) => {
+        submit(event.currentTarget);
+      }}
+    />
+  );
+}
+
+Signature
+submit(targetOrData, options);
+
+targetOrData
+Can be any of the following:
+HTMLFormElement instance
+<Form
+  onSubmit={(event) => {
+    submit(event.currentTarget);
+  }}
+/>
+
+FormData instance
+const formData = new FormData();
+formData.append("myKey", "myValue");
+submit(formData, { method: "post" });
+
+Plain object that will be serialized as FormData
+submit({ myKey: "myValue" }, { method: "post" });
+
+Plain object that will be serialized as JSON
+submit(
+  { myKey: "myValue" },
+  { method: "post", encType: "application/json" }
+);
+
+options
+Options for the submission, the same as <Form> props. All options are optional.
+submit(data, {
+  action: "",
+  method: "post",
+  encType: "application/x-www-form-urlencoded",
+  preventScrollReset: false,
+  replace: false,
+  relative: "route",
+});
+
+Please see the Splat Paths section on the useResolvedPath docs for a note on the behavior of the future.v3_relativeSplatPath future flag for relative useSubmit() behavior within splat routes
+Additional Resources
+Discussion
+Related API

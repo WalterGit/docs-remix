@@ -1,0 +1,14 @@
+useAsyncValue
+Returns the resolved data from the closest <Await> ancestor component.
+function SomeDescendant() {
+  const value = useAsyncValue();
+  // ...
+}
+
+<Await resolve={somePromise}>
+  <SomeDescendant />
+</Await>
+
+Additional Resources
+Guides
+API

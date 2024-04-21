@@ -1,0 +1,11 @@
+useNavigationType
+Returns the type of navigation used when the user arrived at the current location.
+import { useNavigationType } from "@remix-run/react";
+
+function SomeComponent() {
+  const navigationType = useNavigationType();
+  // ...
+}
+
+Return Values
+Additional Resources

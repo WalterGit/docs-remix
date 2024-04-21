@@ -1,0 +1,170 @@
+Client Data
+Remix introduced support for "Client Data" (RFC) in v2.4.0 which allows you to opt-into running route loaders/actions in the browser via clientLoader/clientAction exports from your route.
+These new exports are a bit of a sharp knife and are not recommended as your primary data loading/submission mechanisms - but instead give you a lever to pull on for some of the following advanced use cases:
+Please use these new exports with caution! If you're not careful - it's easy to get your UI out of sync. Remix out of the box tries very hard to ensure that this doesn't happen - but once you take control over your own client-side cache, and potentially prevent Remix from performing its normal server fetch calls - then Remix can no longer guarantee your UI remains in sync.
+Skip the Hop
+When using Remix in a BFF architecture, it may be advantageous to skip the Remix server hop and hit your backend API directly. This assumes you are able to handle authentication accordingly and are not subject to CORS issues. You can skip the Remix BFF hop as follows:
+In this scenario, Remix will not call the clientLoader on hydration - and will only call it on subsequent navigations.
+import type { LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
+import type { ClientLoaderFunctionArgs } from "@remix-run/react";
+
+export async function loader({
+  request,
+}: LoaderFunctionArgs) {
+  const data = await fetchApiFromServer({ request }); // (1)
+  return json(data);
+}
+
+export async function clientLoader({
+  request,
+}: ClientLoaderFunctionArgs) {
+  const data = await fetchApiFromClient({ request }); // (2)
+  return data;
+}
+
+Fullstack State
+Sometimes, you may want to leverage "Fullstack State" where some of your data comes from the server, and some of your data comes from the browser (i.e., IndexedDB or other browser SDKs) - but you can't render your component until you have the combined set of data. You can combine these two data sources as follows:
+import type { LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
+import type { ClientLoaderFunctionArgs } from "@remix-run/react";
+
+export async function loader({
+  request,
+}: LoaderFunctionArgs) {
+  const partialData = await getPartialDataFromDb({
+    request,
+  }); // (1)
+  return json(partialData);
+}
+
+export async function clientLoader({
+  request,
+  serverLoader,
+}: ClientLoaderFunctionArgs) {
+  const [serverData, clientData] = await Promise.all([
+    serverLoader(),
+    getClientData(request),
+  ]);
+  return {
+    ...serverData, // (4)
+    ...clientData, // (4)
+  };
+}
+clientLoader.hydrate = true; // (3)
+
+export function HydrateFallback() {
+  return <p>Skeleton rendered during SSR</p>; // (2)
+}
+
+export default function Component() {
+  // This will always be the combined set of server + client data
+  const data = useLoaderData();
+  return <>...</>;
+}
+
+One or the Other
+You may want to mix and match data loading strategies in your application such that some routes only load data on the server and some routes only load data on the client. You can choose per route as follows:
+A route that only depends on a server loader looks like this:
+import type { LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
+
+export async function loader({
+  request,
+}: LoaderFunctionArgs) {
+  const data = await getServerData(request);
+  return json(data);
+}
+
+export default function Component() {
+  const data = useLoaderData(); // (1) - server data
+  return <>...</>;
+}
+
+A route that only depends on a client loader looks like this.
+import type { ClientLoaderFunctionArgs } from "@remix-run/react";
+
+export async function clientLoader({
+  request,
+}: ClientLoaderFunctionArgs) {
+  const clientData = await getClientData(request);
+  return clientData;
+}
+// Note: you do not have to set this explicitly - it is implied if there is no `loader`
+clientLoader.hydrate = true;
+
+// (2)
+export function HydrateFallback() {
+  return <p>Skeleton rendered during SSR</p>;
+}
+
+export default function Component() {
+  const data = useLoaderData(); // (2) - client data
+  return <>...</>;
+}
+
+Client Cache
+You can leverage a client-side cache (memory, local storage, etc.) to bypass certain calls to the server as follows:
+Note that since we are not exporting a HydrateFallback component, we will SSR the route component and then run the clientLoader on hydration, so it's important that your loader and clientLoader return the same data on initial load to avoid hydration errors.
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+} from "@remix-run/node";
+import { json } from "@remix-run/node";
+import type {
+  ClientActionFunctionArgs,
+  ClientLoaderFunctionArgs,
+} from "@remix-run/react";
+
+export async function loader({
+  request,
+}: LoaderFunctionArgs) {
+  const data = await getDataFromDb({ request }); // (1)
+  return json(data);
+}
+
+export async function action({
+  request,
+}: ActionFunctionArgs) {
+  await saveDataToDb({ request });
+  return json({ ok: true });
+}
+
+let isInitialRequest = true;
+
+export async function clientLoader({
+  request,
+  serverLoader,
+}: ClientLoaderFunctionArgs) {
+  const cacheKey = generateKey(request);
+
+  if (isInitialRequest) {
+    isInitialRequest = false;
+    const serverData = await serverLoader();
+    cache.set(cacheKey, serverData); // (2)
+    return serverData;
+  }
+
+  const cachedData = await cache.get(cacheKey);
+  if (cachedData) {
+    return cachedData; // (3)
+  }
+
+  const serverData = await serverLoader();
+  cache.set(cacheKey, serverData);
+  return serverData;
+}
+clientLoader.hydrate = true; // (2)
+
+export async function clientAction({
+  request,
+  serverAction,
+}: ClientActionFunctionArgs) {
+  const cacheKey = generateKey(request);
+  cache.delete(cacheKey); // (4)
+  const serverData = await serverAction();
+  return serverData;
+}
+
+Migration
+We expect to write up a separate guide for migrations once SPA Mode lands, but for now we expect that the process will be something like:

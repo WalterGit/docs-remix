@@ -1,0 +1,11 @@
+Remix Docs
+npx create-remix@latest
+
+I'm just curious...
+Start with the Technical Explanation. Remix is a new kind of web framework that we like to call "centerstack". It blends old and new web development models in a unique way that deserves some explanation!
+I want to try it out...
+Spend your first few minutes with Remix in the Tutorial. It introduces the core features as quickly as possible building a little contact management app. You'll see data loading, actions, form validation, search, redirects, and more.
+I'm in, let's go.
+The Discussions will help you get a deep understanding of Remix. Get yourself a drink and some snacks then dive deep into building better web apps with Remix.
+I'm stuck!
+Need help? Want to contribute? Remix is developed in the open with a helpful community. Come and see where to find us on the Community page, follow along with Remix development, get help, and contribute back!

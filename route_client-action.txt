@@ -1,0 +1,22 @@
+clientAction
+In addition to (or in place of) your action, you may define a clientAction function that will execute on the client.
+Each route can define a clientAction function that handles mutations:
+export const clientAction = async ({
+  request,
+  params,
+  serverAction,
+}: ClientActionFunctionArgs) => {
+  invalidateClientSideCache();
+  const data = await serverAction();
+  return data;
+};
+
+This function is only ever run on the client, and can be used in a few ways:
+Arguments
+params
+This function receives the same params argument as an action.
+request
+This function receives the same request argument as an action.
+serverAction
+serverAction is an asynchronous function that makes the fetch call to the server action for this route.
+See also:

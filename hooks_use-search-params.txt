@@ -1,0 +1,37 @@
+useSearchParams
+Returns a tuple of the current URL's searchParams and a function to update them. Setting the search params causes a navigation.
+import { useSearchParams } from "@remix-run/react";
+
+export function SomeComponent() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  // ...
+}
+
+Signature
+const [searchParams, setSearchParams] = useSearchParams();
+
+searchParams
+The first value returned is a Web URLSearchParams object.
+setSearchParams(params, navigateOptions)
+The second value returned is a function to set new search params and causes a navigation when called. You can pass an optional second argument with navigate options to configure the navigation.
+<button
+  onClick={() => {
+    const params = new URLSearchParams();
+    params.set("someKey", "someValue");
+    setSearchParams(params, {
+      preventScrollReset: true,
+    });
+  }}
+/>
+
+setSearchParams((prevParams) => newParams, navigateOptions)
+The setter function also supports a function for setting new search params.
+<button
+  onClick={() => {
+    setSearchParams((prev) => {
+      prev.set("someKey", "someValue");
+      return prev;
+    });
+  }}
+/>
+

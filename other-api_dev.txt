@@ -1,0 +1,180 @@
+Remix CLI
+The Remix CLI comes from the @remix-run/dev package. It also includes the compiler. Make sure it is in your package.json devDependencies so it doesn't get deployed to your server.
+To get a full list of available commands and flags, run:
+npx @remix-run/dev -h
+
+remix vite:build
+Builds your app for production with Remix Vite. This command will set process.env.NODE_ENV to production and minify the output for deployment.
+remix vite:build
+
+remix vite:dev
+Runs your app in development mode with Remix Vite.
+remix vite:dev
+
+Classic Remix Compiler Commands
+This documentation is only relevant when using the Classic Remix Compiler.
+remix build
+Builds your app for production with the Classic Remix Compiler. This command will set process.env.NODE_ENV to production and minify the output for deployment.
+remix build
+
+Options
+remix dev
+Runs the Classic Remix Compiler in watch mode and spins up your app server.
+The Remix compiler will:
+🎥 For an introduction and deep dive into HMR and HDR in Remix, check out our videos:
+What is "Hot Data Revalidation"?
+Like HMR, HDR is a way of hot updating your app without needing to refresh the page.
+That way you can keep your app state as your edits are applied in your app.
+HMR handles client-side code updates like when you change the components, markup, or styles in your app.
+Likewise, HDR handles server-side code updates.
+That means any time your change a loader on your current page (or any code that your loader depends on), Remix will re-fetch data from your changed loader.
+That way your app is always up-to-date with the latest code changes, client-side or server-side.
+To learn more about how HMR and HDR work together, check out Pedro's talk at Remix Conf 2023.
+With custom app server
+If you used a template to get started, hopefully it's already integrated with remix dev out-of-the-box.
+If not, you can follow these steps to integrate your project with remix dev:
+Replace your dev scripts in package.json and use -c to specify your app server command:
+{
+  "scripts": {
+    "dev": "remix dev -c \"node ./server.js\""
+  }
+}
+
+Ensure broadcastDevReady is called when your app server is up and running:
+import path from "node:path";
+
+import { broadcastDevReady } from "@remix-run/node";
+import express from "express";
+
+const BUILD_DIR = path.resolve(__dirname, "build");
+const build = require(BUILD_DIR);
+
+const app = express();
+
+// ... code for setting up your express app goes here ...
+
+app.all("*", createRequestHandler({ build }));
+
+const port = 3000;
+app.listen(port, () => {
+  console.log(`👉 http://localhost:${port}`);
+
+  if (process.env.NODE_ENV === "development") {
+    broadcastDevReady(build);
+  }
+});
+
+For CloudFlare, use logDevReady instead of broadcastDevReady.
+Why? broadcastDevReady uses fetch to send a ready message to the Remix compiler,
+but CloudFlare does not support async I/O like fetch outside of request handling.
+Options
+Options priority order is: 1. flags, 2. config, 3. defaults.
+For example:
+/** @type {import('@remix-run/dev').AppConfig} */
+module.exports = {
+  dev: {
+    // ...any other options you want to set go here...
+    manual: true,
+    tlsKey: "./key.pem",
+    tlsCert: "./cert.pem",
+  },
+};
+
+Setting a custom port
+The remix dev --port option sets the internal port used for hot updates.
+It does not affect the port your app runs on.
+To set your app server port, set it the way you normally would in production.
+For example, you may have it hardcoded in your server.js file.
+If you are using remix-serve as your app server, you can use its --port flag to set the app server port:
+remix dev -c "remix-serve --port 8000 ./build/index.js"
+
+In contrast, the remix dev --port option is an escape-hatch for users who need fine-grain control of network ports.
+Most users, should not need to use remix dev --port.
+Manual mode
+By default, remix dev will restart your app server whenever a rebuild occurs.
+If you'd like to keep your app server running without restarts across rebuilds, check out our guide for manual mode.
+You can see if app server restarts are a bottleneck for your project by comparing the times reported by remix dev:
+Pick up changes from other packages
+If you are using a monorepo, you might want Remix to perform hot updates not only when your app code changes, but whenever you change code in any of your apps dependencies.
+For example, you could have a UI library package (packages/ui) that is used within your Remix app (packages/app).
+To pick up changes in packages/ui, you can configure watchPaths to include your packages.
+How to set up MSW
+To use Mock Service Worker in development, you'll need to:
+Make sure that you are setting up your mocks for your app server within the -c flag so that the REMIX_DEV_ORIGIN environment variable is available to your mocks.
+For example, you can use NODE_OPTIONS to set Node's --require flag when running remix-serve:
+{
+  "scripts": {
+    "dev": "remix dev -c \"npm run dev:app\"",
+    "dev:app": "cross-env NODE_OPTIONS=\"--require ./mocks\" remix-serve ./build"
+  }
+}
+
+If you're using ESM as the default module system you will need to set the --import flag instead of --require:
+{
+  "scripts": {
+    "dev": "remix dev -c \"npm run dev:app\"",
+    "dev:app": "cross-env NODE_OPTIONS=\"--import ./mocks/index.js\" remix-serve ./build/index.js"
+  }
+}
+
+Next, you can use REMIX_DEV_ORIGIN to let MSW forward internal "dev ready" messages on /ping:
+import { http, passthrough } from "msw";
+
+const REMIX_DEV_PING = new URL(
+  process.env.REMIX_DEV_ORIGIN
+);
+REMIX_DEV_PING.pathname = "/ping";
+
+export const server = setupServer(
+  http.post(REMIX_DEV_PING.href, () => passthrough())
+  // ... other request handlers go here ...
+);
+
+How to integrate with a reverse proxy
+Let's say you have the app server and Remix compiler both running on the same machine:
+Then, you set up a reverse proxy in front of the app server:
+But the internal HTTP and WebSocket connections to support hot updates will still try to reach the Remix compiler's unproxied origin:
+To get the internal connections to point to the reverse proxy, you can use the REMIX_DEV_ORIGIN environment variable:
+REMIX_DEV_ORIGIN=https://myhost remix dev
+
+Now, hot updates will be sent correctly to the proxy:
+Performance tuning and debugging
+Path imports
+Currently, when Remix rebuilds your app, the compiler has to process your app code along with any of its dependencies.
+The compiler tree-shakes unused code from app so that you don't ship any unused code to browser and so that you keep your server as slim as possible.
+But the compiler still needs to crawl all the code to know what to keep and what to tree shake away.
+In short, this means that the way you do imports and exports can have a big impact on how long it takes to rebuild your app.
+For example, if you are using a library like Material UI or AntD you can likely speed up your builds by using path imports:
+- import { Button, TextField } from '@mui/material';
++ import Button from '@mui/material/Button';
++ import TextField from '@mui/material/TextField';
+
+In the future, Remix could pre-bundle dependencies in development to avoid this problem entirely.
+But today, you can help the compiler out by using path imports.
+Debugging bundles
+Depending on your app and dependencies, you might be processing much more code than your app needs.
+Check out our bundle analysis guide for more details.
+Troubleshooting
+HMR
+If you are expecting hot updates but getting full page reloads,
+check out our discussion on Hot Module Replacement to learn more about the limitations of React Fast Refresh and workarounds for common issues.
+HDR: every code change triggers HDR
+Hot Data Revalidation detects loader changes by trying to bundle each loader and then fingerprinting the content for each.
+It relies on tree shaking to determine whether your changes affect each loader or not.
+To ensure that tree shaking can reliably detect changes to loaders, make sure you declare that your app's package is side effect free:
+{
+  "sideEffects": false
+}
+
+HDR: harmless console errors when loader data is removed
+When you delete a loader or remove some of the data being returned by that loader, your app should be hot updated correctly.
+But you may notice console errors logged in your browser.
+React strict-mode and React Suspense can cause multiple renders when hot updates are applied.
+Most of these render correctly, including the final render that is visible to you.
+But intermediate renders can sometimes use new loader data with old React components, which is where those errors come from.
+We are continuing to investigate the underlying race condition to see if we can smooth that over.
+In the meantime, if those console errors bother you, you can refresh the page whenever they occur.
+HDR: performance
+When the Remix compiler builds (and rebuilds) your app, you may notice a slight slowdown as the compiler needs to crawl the dependencies for each loader.
+That way Remix can detect loader changes on rebuilds.
+While the initial build slowdown is inherently a cost for HDR, we plan to optimize rebuilds so that there is no perceivable slowdown for HDR rebuilds.

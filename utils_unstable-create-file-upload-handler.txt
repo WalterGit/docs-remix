@@ -1,0 +1,28 @@
+unstable_createFileUploadHandler
+A Node.js upload handler that will write parts with a filename to disk to keep them out of memory, parts without a filename will not be parsed. Should be composed with another upload handler.
+Example:
+export const action = async ({
+  request,
+}: ActionFunctionArgs) => {
+  const uploadHandler = unstable_composeUploadHandlers(
+    unstable_createFileUploadHandler({
+      maxPartSize: 5_000_000,
+      file: ({ filename }) => filename,
+    }),
+    // parse everything else into memory
+    unstable_createMemoryUploadHandler()
+  );
+  const formData = await unstable_parseMultipartFormData(
+    request,
+    uploadHandler
+  );
+
+  const file = formData.get("avatar");
+
+  // file is a "NodeOnDiskFile" which implements the "File" API
+  // ... etc
+};
+
+Options:
+The function API for file and directory are the same. They accept an object and return a string. The object it accepts has filename, name, and contentType (all strings). The string returned is the path.
+The filter function accepts an object and returns a boolean (or a promise that resolves to a boolean). The object it accepts has the filename, name, and contentType (all strings). The boolean returned is true if you want to handle that file stream.
